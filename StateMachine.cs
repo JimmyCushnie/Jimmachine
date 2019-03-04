@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace PiMachine
+namespace Jimmachine
 {
     public class StateMachine<TState, TTrigger>
         where TState : Enum
