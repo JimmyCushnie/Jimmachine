@@ -70,7 +70,7 @@ namespace Jimmachine
 
         public class Configurer
         {
-            private readonly TState State;
+            public readonly TState State;
             private readonly StateMachine<TState, TTrigger> Machine;
 
             internal Configurer(TState state, StateMachine<TState, TTrigger> machine)
