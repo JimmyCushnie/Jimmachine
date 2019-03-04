@@ -82,6 +82,10 @@ namespace Jimmachine
             public Configurer OnRun(Action action)
             {
                 Machine.StateRunActions[State] = action;
+
+                if (Machine.CurrentState.Equals(State))
+                    Machine.CurrentStateRunAction = action;
+
                 return this;
             }
 
