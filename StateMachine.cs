@@ -17,8 +17,15 @@ namespace Jimmachine
             this.CurrentState = initialState;
         }
 
+        private List<TState> AlreadyConfigured = new List<TState>();
         /// <summary> Set the state's OnRun method and the Triggers that can be used on it </summary>
-        public Configurer Configure(TState state) => new Configurer(state, this);
+        public Configurer Configure(TState state)
+        {
+            if (AlreadyConfigured.Contains(state)) throw new Exception($"already configured state {state}!");
+            AlreadyConfigured.Add(state);
+
+            return new Configurer(state, this);
+        }
 
         /// <summary> returns true if the state was changed </summary>
         public bool Fire(TTrigger trigger)
