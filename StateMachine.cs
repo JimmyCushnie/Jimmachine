@@ -10,16 +10,18 @@ namespace Jimmachine
         public TState CurrentState { get; private set; }
 
         private IList<Permit> Permits = new List<Permit>();
-        private IDictionary<TState, Action> OnRun = new Dictionary<TState, Action>();
+        private IDictionary<TState, Action> StateRunActions = new Dictionary<TState, Action>();
 
         public StateMachine(TState initialState = default)
         {
             this.CurrentState = initialState;
         }
 
+        /// <summary> Set the state's OnRun method and the Triggers that can be used on it </summary>
         public Configurer Configure(TState state) => new Configurer(state, this);
 
-        public void Fire(TTrigger trigger)
+        /// <summary> returns true if the state was changed </summary>
+        public bool Fire(TTrigger trigger)
         {
             foreach (var permit in Permits)
             {
@@ -28,16 +30,20 @@ namespace Jimmachine
                     permit.Execute?.Invoke();
                     this.CurrentState = permit.NextState;
 
-                    break;
+                    CurrentStateRunAction = 
+                        StateRunActions.TryGetValue(permit.NextState, out var action) ? action : null;
+
+                    return true;
                 }
             }
+
+            return false;
         }
 
-        public void RunCurrentState(TState state)
-        {
-            OnRun.TryGetValue(state, out var action);
-            action?.Invoke();
-        }
+        private Action CurrentStateRunAction;
+        /// <summary> call this every frame/tick/whatever </summary>
+        public void RunCurrentState()
+            => CurrentStateRunAction?.Invoke();
 
         private struct Permit
         {
@@ -68,13 +74,14 @@ namespace Jimmachine
 
             public Configurer OnRun(Action action)
             {
-                Machine.OnRun[State] = action;
+                Machine.StateRunActions[State] = action;
                 return this;
             }
 
             public Configurer Permit(TTrigger trigger, TState changeTo, Action execute = null)
             {
                 Machine.Permits.Add(new Permit(State, trigger, changeTo, execute));
+                return this;
             }
         }
     }
