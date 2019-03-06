@@ -3,13 +3,11 @@ using System.Collections.Generic;
 
 namespace Jimmachine
 {
-    public class StateMachine<TState, TTrigger>
-        where TState : Enum
-        where TTrigger : Enum
+    public class StateMachine<TState> where TState : Enum
     {
         public TState CurrentState { get; private set; }
 
-        private IList<Permit> Permits = new List<Permit>();
+        private IList<Transition> Transitions = new List<Transition>();
         private IDictionary<TState, Action> StateRunActions = new Dictionary<TState, Action>();
 
         public StateMachine(TState initialState = default)
@@ -18,7 +16,7 @@ namespace Jimmachine
         }
 
         private List<TState> AlreadyConfigured = new List<TState>();
-        /// <summary> Set the state's OnRun method and the Triggers that can be used on it </summary>
+        /// <summary> Set the state's OnRun method and add transitions to other states </summary>
         public Configurer Configure(TState state)
         {
             if (AlreadyConfigured.Contains(state)) throw new Exception($"already configured state {state}!");
@@ -27,18 +25,18 @@ namespace Jimmachine
             return new Configurer(state, this);
         }
 
-        /// <summary> returns true if the state was changed </summary>
-        public bool Fire(TTrigger trigger)
+        /// <summary> returns true if the state was changed, false if that was not a configured transition </summary>
+        public bool SwitchTo(TState newState)
         {
-            foreach (var permit in Permits)
+            foreach (var transition in Transitions)
             {
-                if (permit.Original.Equals(CurrentState) && permit.Trigger.Equals(trigger))
+                if (transition.OriginalState.Equals(CurrentState) && transition.NextState.Equals(newState))
                 {
-                    permit.Execute?.Invoke();
-                    this.CurrentState = permit.NextState;
+                    transition.Execute?.Invoke();
+                    this.CurrentState = transition.NextState;
 
                     CurrentStateRunAction = 
-                        StateRunActions.TryGetValue(permit.NextState, out var action) ? action : null;
+                        StateRunActions.TryGetValue(transition.NextState, out var action) ? action : null;
 
                     return true;
                 }
@@ -52,17 +50,15 @@ namespace Jimmachine
         public void RunCurrentState()
             => CurrentStateRunAction?.Invoke();
 
-        private struct Permit
+        private struct Transition
         {
-            public TState Original;
-            public TTrigger Trigger;
+            public TState OriginalState;
             public TState NextState;
             public Action Execute;
 
-            public Permit(TState original, TTrigger trigger, TState nextState, Action execute)
+            public Transition(TState original, TState nextState, Action execute)
             {
-                this.Original = original;
-                this.Trigger = trigger;
+                this.OriginalState = original;
                 this.NextState = nextState;
                 this.Execute = execute;
             }
@@ -71,9 +67,9 @@ namespace Jimmachine
         public class Configurer
         {
             public readonly TState State;
-            private readonly StateMachine<TState, TTrigger> Machine;
+            private readonly StateMachine<TState> Machine;
 
-            internal Configurer(TState state, StateMachine<TState, TTrigger> machine)
+            internal Configurer(TState state, StateMachine<TState> machine)
             {
                 this.State = state;
                 this.Machine = machine;
@@ -89,9 +85,9 @@ namespace Jimmachine
                 return this;
             }
 
-            public Configurer Permit(TTrigger trigger, TState changeTo, Action execute = null)
+            public Configurer AllowTransitionTo(TState changeTo, Action execute = null)
             {
-                Machine.Permits.Add(new Permit(State, trigger, changeTo, execute));
+                Machine.Transitions.Add(new Transition(State, changeTo, execute));
                 return this;
             }
         }
