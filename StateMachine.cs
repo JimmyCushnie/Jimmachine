@@ -15,15 +15,9 @@ namespace Jimmachine
             this.CurrentState = initialState;
         }
 
-        private List<TState> AlreadyConfigured = new List<TState>();
         /// <summary> Set the state's OnRun method and add transitions to other states </summary>
         public Configurer Configure(TState state)
-        {
-            if (AlreadyConfigured.Contains(state)) throw new Exception($"already configured state {state}!");
-            AlreadyConfigured.Add(state);
-
-            return new Configurer(state, this);
-        }
+            => new Configurer(state, this);
 
         /// <summary> returns true if the state was changed, false if that was not a configured transition </summary>
         public bool SwitchTo(TState newState)
